@@ -13,6 +13,7 @@
  * @see         https://opensource.org/licenses/MIT
  * @version     1
  * @see         1 - add - 初版
+ * @see         https://github.com/k08045kk/onLazy.js
  */
 (function(win, doc) {
   'use strict';
