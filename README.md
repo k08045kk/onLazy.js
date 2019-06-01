@@ -6,11 +6,11 @@ Lazy processing.
 
 
 ## Description
-Add "Ignite on first user event" event as a custom event.  
-It fires at the first user event after the load event.  
-If the user event fires before the load event, it fires at the load event.  
-Also fires in the middle of the document at the time of the load event.  
-Ignition occurs only once.  
+Add a "fire on first user event" event as a custom event.  
+Fires at the first user event after the load event.  
+If the user event is fired before the load event, it fires at the load event.  
+It also fires when not at the beginning of the document at the time of the load event.  
+The event occurs only once.
 
 
 ## Usage
