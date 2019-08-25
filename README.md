@@ -1,8 +1,7 @@
 ﻿onLazy.js
 =========
 
-Lazy processing.
-
+Lazy event listener.
 
 
 ## Description
