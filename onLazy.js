@@ -1,4 +1,4 @@
-/*! onLazy.js v1.3 | MIT License | github.com/k08045kk/onLazy.js */
+/*! onLazy.js v1.4 | MIT License | github.com/k08045kk/onLazy.js */
 /**
  * onLazy.js
  * 遅延イベントリスナー
@@ -12,13 +12,14 @@
  * 登録：window.addEventListener('lazy', func);
  * 対応：IE9+
  * @auther      toshi(https://www.bugbugnow.net/p/profile.html)
- * @version     1.3
+ * @version     1.4
  * @see         1 - 20190601 - add - 初版
  * @see         1.1 - 20200116 - update - FID対策として、setTimeoutでlazy処理を更に遅延
  * @see         1.2 - 20200117 - update - FID対策として、addEventListener()にoptionsを設定
  * @see         1.3 - 20200117 - update - イベント種類を変更、スクロール位置の取得方法変更
+ * @see         1.4 - 20200117 - update - スクロール位置の取得方法変更
  */
-(function(win, doc) {
+(function(window, document) {
   'use strict';
   
   var delay = 10;
@@ -41,10 +42,10 @@
       evt = new CustomEvent('lazy', {detail:data});
     } catch (e) {
       // IE11-9
-      evt = doc.createEvent('CustomEvent');
+      evt = document.createEvent('CustomEvent');
       evt.initCustomEvent('lazy', true, true, data);
     }
-    win.dispatchEvent(evt);
+    window.dispatchEvent(evt);
     //console.log('lazy: dispatch');
   }
   
@@ -56,7 +57,7 @@
       fire = true;
       //console.log('lazy: fire');
       for (var i=0, len=types.length; i<len; i++) {
-        win.removeEventListener(types[i], onLazy, options);
+        window.removeEventListener(types[i], onLazy, options);
       }
     }
     if (lazy === false && load === true) {
@@ -68,21 +69,20 @@
         dispatchLazyEvent();
       } else {
         // 更に遅延する。FID対策
-        win.setTimeout(dispatchLazyEvent, delay);
+        window.setTimeout(dispatchLazyEvent, delay);
       }
     }
   }
   
   for (var i=0, len=types.length; i<len; i++) {
-    win.addEventListener(types[i], onLazy, options);
+    window.addEventListener(types[i], onLazy, options);
   }
-  win.addEventListener('load', function(event) {
+  window.addEventListener('load', function(event) {
     // 既に着火済み or ドキュメントの途中（更新時 or ページ内リンク）
     load = true;
     //console.log('lazy: load');
     
-    var y =  win.pageYOffset || doc.documentElement.scrollTop || doc.body.scrollTop || 0;
-    if (fire === true || y != 0) {
+    if (fire === true || window.pageYOffset != 0) {
       //console.log('lazy: fire: '+fire);
       //console.log('lazy: scroll: '+y);
       onLazy(event, true);
