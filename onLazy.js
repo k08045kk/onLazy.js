@@ -1,4 +1,4 @@
-/*! onLazy.js v1.4 | MIT License | github.com/k08045kk/onLazy.js */
+/*! onLazy.js v1.5 | MIT License | github.com/k08045kk/onLazy.js */
 /**
  * onLazy.js
  * 遅延イベントリスナー
@@ -12,12 +12,13 @@
  * 登録：window.addEventListener(&#039;lazy&#039;, func);
  * 対応：IE9+
  * @auther      toshi(https://www.bugbugnow.net/p/profile.html)
- * @version     1.4
+ * @version     1.5
  * @see         1 - 20190601 - add - 初版
  * @see         1.1 - 20200116 - update - FID対策として、setTimeoutでlazy処理を更に遅延
  * @see         1.2 - 20200117 - update - FID対策として、addEventListener()にoptionsを設定
  * @see         1.3 - 20200117 - update - イベント種類を変更、スクロール位置の取得方法変更
  * @see         1.4 - 20200117 - update - スクロール位置の取得方法変更
+ * @see         1.5 - 20200123 - update - toolazyを追加
  */
 (function(window, document) {
   'use strict';
@@ -34,23 +35,25 @@
   var types = ['click','mouseover','keydown','touchstart','pointerover','wheel','scroll'];
   var options = {capture:true, once:true, passive:true};
   
-  function dispatchLazyEvent() {
+  function dispatchLazyEvent(opt_type) {
+    var type = opt_type != null ? opt_type: 'lazy';
+    
     // 遅延処理呼び出し
     var evt;
     var data = void 0;
     try {
-      evt = new CustomEvent('lazy', {detail:data});
+      evt = new CustomEvent(type, {detail:data});
     } catch (e) {
       // IE11-9
       evt = document.createEvent('CustomEvent');
-      evt.initCustomEvent('lazy', true, true, data);
+      evt.initCustomEvent(type, true, true, data);
     }
     window.dispatchEvent(evt);
     //console.log('lazy: dispatch');
   }
   
-  function onLazy(event, isLoad) {
-    if (fire === false) {
+  function onLazy(event) {
+    if (!fire) {
       // 初回イベントでリスナー解除（load前の複数回呼び出しを回避）
       // load前：loadで遅延処理実行
       // load後：このまま遅延処理実行
@@ -60,12 +63,12 @@
         window.removeEventListener(types[i], onLazy, options);
       }
     }
-    if (lazy === false && load === true) {
+    if (!lazy && load) {
       // 複数呼び出し回避
       lazy = true;
       //console.log('lazy: lazy');
       
-      if (isLoad === true) {
+      if (event.type == 'load') {
         dispatchLazyEvent();
       } else {
         // 更に遅延する。FID対策
@@ -82,12 +85,21 @@
     load = true;
     //console.log('lazy: load');
     
-    if (fire === true || window.pageYOffset != 0) {
+    if (fire || window.pageYOffset) {
       //console.log('lazy: fire: '+fire);
       //console.log('lazy: scroll: '+y);
-      onLazy(event, true);
+      onLazy(event);
     }
     //console.log('lazy: loaded');
+  }, options);
+  window.addEventListener('unload', function(event) {
+    if (!lazy) {
+      // 遅延イベント不発時のイベント
+      // unload時のイベントのため、確実に処理されるとは保証できない
+      lazy = true;
+      dispatchLazyEvent('toolazy');
+    }
+    //console.log('lazy: unload');
   }, options);
   //console.log('lazy: init');
 })(window, document);
