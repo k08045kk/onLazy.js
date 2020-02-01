@@ -8,7 +8,7 @@
  * loadイベント時にドキュメント先頭にない場合も発火します。
  * イベントは、一度しか発生しません。
  * 注意：初回ユーザイベントより後に lazy は発火します。
- *       初回ユーザイベント時に必須の処理は、lazy で処理しないでください。
+ *       初回ユーザイベントは、取り逃す前提で処理してください。
  * 登録：window.addEventListener(&#039;lazy&#039;, func);
  * 対応：IE9+
  * @auther      toshi(https://www.bugbugnow.net/p/profile.html)
