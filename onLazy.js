@@ -1,4 +1,4 @@
-/*! onLazy.js v1.6 | MIT License | github.com/k08045kk/onLazy.js */
+/*! onLazy.js v1.7 | MIT License | github.com/k08045kk/onLazy.js/blob/master/LICENSE */
 /**
  * onLazy.js
  * 遅延イベントリスナー
@@ -12,7 +12,7 @@
  * 登録：window.addEventListener(&#039;lazy&#039;, func);
  * 対応：IE9+
  * @auther      toshi(https://www.bugbugnow.net/p/profile.html)
- * @version     1.6
+ * @version     1.7
  * @see         1 - 20190601 - add - 初版
  * @see         1.1 - 20200116 - update - FID対策として、setTimeoutでlazy処理を更に遅延
  * @see         1.2 - 20200117 - update - FID対策として、addEventListener()にoptionsを設定
@@ -20,8 +20,9 @@
  * @see         1.4 - 20200117 - update - スクロール位置の取得方法変更
  * @see         1.5 - 20200123 - update - toolazyを追加
  * @see         1.6 - 20200124 - update - リファクタリング（loadイベント時も遅延させる）
+ * @see         1.7 - 20200201 - update - リファクタリング
  */
-(function(document, window) {
+(function(window, document) {
   'use strict';
   
   var delay = 10;
@@ -34,6 +35,7 @@
   // 想定初回イベント: PC:mousemove(mouseover), SP:scroll(touchstart)
   // 補足：PC環境では初回表示領域が大きいため、スクロールより早くしたい。なので、マウス移動を検出する
   var types = ['click','mouseover','keydown','touchstart','pointerover','wheel','scroll'];
+  // capture=true: 何故かfalseよりFID良い。理由は不明
   var options = {capture:true, once:true, passive:true};
   
   function dispatchLazyEvent(opt_type) {
@@ -75,11 +77,10 @@
   }
   
   // main
-  var addEventListener = window.addEventListener;
   for (var i=0, len=types.length; i<len; i++) {
-    addEventListener(types[i], onLazy, options);
+    window.addEventListener(types[i], onLazy, options);
   }
-  addEventListener('load', function() {
+  window.addEventListener('load', function() {
     load = true;
     //console.log('lazy: load');
     
@@ -91,7 +92,7 @@
     }
     //console.log('lazy: loaded');
   }, options);
-  addEventListener('unload', function() {
+  window.addEventListener('unload', function() {
     if (!lazy) {
       // 遅延イベント不発時のイベント
       // unload時のイベントのため、確実に処理されるとは保証できない
@@ -103,4 +104,4 @@
   }, options);
   //console.log('lazy: init');
   
-})(document, window);
+})(window, document);
