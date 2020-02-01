@@ -1,4 +1,4 @@
-/*! onLazy.js v1.7 | MIT License | github.com/k08045kk/onLazy.js/blob/master/LICENSE */
+/*! onLazy.js v1.7 | MIT License | https://github.com/k08045kk/onLazy.js/blob/master/LICENSE */
 /**
  * onLazy.js
  * 遅延イベントリスナー
@@ -11,7 +11,7 @@
  *       初回ユーザイベントは、取り逃す前提で処理してください。
  * 登録：window.addEventListener(&#039;lazy&#039;, func);
  * 対応：IE9+
- * @auther      toshi(https://www.bugbugnow.net/p/profile.html)
+ * @auther      toshi (https://github.com/k08045kk)
  * @version     1.7
  * @see         1 - 20190601 - add - 初版
  * @see         1.1 - 20200116 - update - FID対策として、setTimeoutでlazy処理を更に遅延
