@@ -1,18 +1,24 @@
-/*! onLazy.js v1.8 | MIT License | https://github.com/k08045kk/onLazy.js/blob/master/LICENSE */
+/*! onLazy.js v1.9 | MIT License | https://github.com/k08045kk/onLazy.js/blob/master/LICENSE */
 /**
  * onLazy.js
- * カスタムイベントとして「初回ユーザーイベント後に発火する」遅延カスタムイベントを追加します。
- * loadイベント以降の初回ユーザーイベント後に発火します。
- * loadイベント以前にユーザーイベントが発火した場合、loadイベント時に発火します。
- * loadイベント時にドキュメント先頭でない場合も発火します。
- * lazyイベントは、一度しか発生しません。
- * 注意：初回ユーザイベントより後に lazy は発火します。
- *       初回ユーザイベントは、取り逃す前提で処理してください。
- * 注意：カスタムイベント登録は、「loadイベントより前」または「onLazy.js実行より前」に実施して下さい。
- * 登録：window.addEventListener('lazy', func);
+ * カスタムイベントとして遅延イベントを追加します。
+ * 遅延イベントは、次の3つです。
+ * lazy（初回ユーザイベント）
+ * lazyed（初回スクロールイベント）
+ * toolazy（初回ユーザイベント未発生時のunloadイベント）
+ * 遅延イベントは、loadイベント以降の初回ユーザイベント後に発火します。
+ * 遅延イベントは、loadイベント以前にユーザイベントが発火した場合、loadイベント時に発火します。
+ * 遅延イベントは、loadイベント時にドキュメント先頭でない場合も発火します。
+ * 遅延イベントは、一度しか発生しません。
+ * 注意：初回ユーザイベントより後に発火します。初回ユーザイベントは、取り逃す前提で処理してください。
+ * 注意：イベント登録は、「load イベントより前」または「onLazy.js実行より前」に実施して下さい。
+ * 注意：toolazyは、unloadイベント中に発生します。そのため、unloadイベントの制約が有効になります。
+ * 登録：window.addEventListener('lazy', func); // 初回ユーザイベント
+ * 登録：window.addEventListener('lazyed', func); // 初回スクロールイベント
+ * 登録：window.addEventListener('toolazy', func);  // 初回ユーザイベント未発生時のunloadイベント
  * 対応：IE9+ (addEventListener, createEvent, initCustomEvent, pageYOffset)
  * @auther      toshi (https://github.com/k08045kk)
- * @version     1.8
+ * @version     1.9
  * @see         1 - 20190601 - add - 初版
  * @see         1.1 - 20200116 - update - FID対策として、setTimeoutでlazy処理を更に遅延
  * @see         1.2 - 20200117 - update - FID対策として、addEventListener()にoptionsを設定
@@ -25,8 +31,11 @@
  * @see         1.8 - 20200215 - update - FID対策として、イベント種別変更（over -> down, move）
  * @see         1.8 - 20200215 - update - lazyイベントをバブリングなし・キャンセル不可とする
  * @see         1.8 - 20200215 - update - setTimeoutでのlazy処理を削除
+ * @see         1.9 - 20200301 - update - lazyedイベントを追加（初回スクロールイベント）
+ * @see         1.9 - 20200302 - update - onlazy, onlazyed, ontoolazyを追加
+ * @see         1.9 - 20200302 - update - lazyの検出イベントにfocusを追加
  */
-(function(document) {
+(function(window, document) {
   'use strict';
   
   var lazy = false;
@@ -34,13 +43,13 @@
   var fire = false;
   // イベント種類
   // lazyイベントは、より早く発火することが望ましいが、FIDに悪影響を与えるべきではない。
-  // そのため、mouseover/pointeroverではなく、mosedown/pointerdownとする。
-  // 想定初回イベント: PC:mousedown/mousemove/scroll, SP:touchstart(scroll)
-  // 補足：PC環境は表示領域が大きいため、スクロールより早く実行したい。そのため、マウス移動を検出する
-  var types = ['click','mousedown','keydown','touchstart','pointerdown','mousemove','pointermove','scroll'];
+  // そのため、mouseover/pointeroverではなく、mosedown/mousemove/pointerdown/pointermoveとする。
+  // 想定初回イベント: PC:mousedown/mousemove/focus/scroll, SP:touchstart(scroll)
+  var types = ['click','mousedown','keydown','touchstart','pointerdown','mousemove','pointermove','focus','scroll'];
   // バブリングフェーズ、1回のみ、中断なし
   var options = {capture:false, once:true, passive:true};
   
+  // onLazyの登録と解除
   var eachEventListener = function(callback) {
     for (var i=0, len=types.length; i<len; i++) {
       callback(types[i], onLazy, options);
@@ -59,10 +68,17 @@
       evt = document.createEvent('CustomEvent');
       evt.initCustomEvent(type, false, false, data);
     }
-    dispatchEvent(evt);
+    try {
+      const onevent = window['on'+type];
+      if (onevent) { onevent(evt); }
+    } catch (e) {}
+    try {
+      dispatchEvent(evt);
+    } catch (e) {}
     //console.log('lazy: dispatch');
   };
   
+  // 初回ユーザイベント
   var onLazy = function() {
     if (!fire) {
       // 初回イベントでリスナー解除（load前の複数回呼び出しを回避）
@@ -82,6 +98,7 @@
     }
   };
   
+  // ページ読込み完了イベント
   var onLoad = function() {
     load = true;
     //console.log('lazy: load');
@@ -92,9 +109,23 @@
       //console.log('lazy: scroll: '+pageYOffset);
       onLazy();
     }
+    // 初回スクロールイベント
+    if (pageYOffset) {
+      // loadイベント前にスクロールイベントが発生した場合、ページ先頭にいない前提
+      // 補足：次のパータンの時、初回スクロールイベントを取り逃します
+      //       スクロールイベントがloadイベント前に発生する && loadイベント時にページ先頭にいる
+      dispatchCustomEvent('lazyed');
+    } else {
+      var onLazyed = function() {
+        removeEventListener('scroll', onLazyed, options);
+        dispatchCustomEvent('lazyed');
+      };
+      addEventListener('scroll', onLazyed, options);
+    }
     //console.log('lazy: loaded');
   };
   
+  // ページ開放イベント
   var onUnload = function() {
     if (!lazy) {
       // 遅延イベント不発時のイベント
@@ -106,6 +137,7 @@
     //console.log('lazy: unload');
   };
   
+  // main
   eachEventListener(addEventListener);
   if (document.readyState != 'complete') {
     // loadイベント開始前
@@ -117,4 +149,4 @@
   addEventListener('unload', onUnload);
   //console.log('lazy: init');
   
-})(document);
+})(window, document);
