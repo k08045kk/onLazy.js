@@ -1,4 +1,4 @@
-/*! onLazy.js v2.1 | MIT License | https://github.com/k08045kk/onLazy.js/blob/master/LICENSE */
+/*! onLazy.js v2.2 | MIT License | https://github.com/k08045kk/onLazy.js/blob/master/LICENSE */
 /**
  * onLazy.js
  * カスタムイベントとして遅延イベントを追加します。
@@ -18,10 +18,11 @@
  * 登録：window.addEventListener('toolazy', func);  // 初回ユーザイベント未発生時のunloadイベント
  * 対応：IE9+ (addEventListener, createEvent, initCustomEvent, pageYOffset)
  * @auther      toshi (https://github.com/k08045kk)
- * @version     2.1
+ * @version     2.2
  * @see         1 - 20190601 - 初版
  * @see         2 - 20200408 - v2.0
  * @see         2.1 - 20200408 - update - lazyイベントをDOMContentLoaded以降に発生するように仕様変更
+ * @see         2.2 - 20200408 - update - スクロール不可時、lazyでlazyedイベントを合わせて実施する
  */
 (function(window, document) {
   'use strict';
@@ -29,6 +30,7 @@
   var lazy = false;
   var load = false;
   var fire = false;
+  var lazyed = false;
   // イベント種類
   // lazyイベントは、より早く発火することが望ましいが、FIDに悪影響を与えるべきではない。
   // そのため、mouseover/pointeroverではなく、mosedown/mousemove/pointerdown/pointermoveとする。
@@ -66,6 +68,15 @@
     //console.log('lazy: dispatch');
   };
   
+  // 初回スクロールイベント
+  var onLazyed = function() {
+    removeEventListener('scroll', onLazyed, options);
+    if (!lazyed) {
+      lazyed = true;
+      dispatchCustomEvent('lazyed');
+    }
+  };
+  
   // 初回ユーザイベント
   var onLazy = function() {
     if (!fire) {
@@ -83,6 +94,9 @@
       //console.log('lazy: lazy');
       
       dispatchCustomEvent('lazy');
+      if (document.documentElement.clientHeight == document.documentElement.scrollHeight) {
+        onLazyed();
+      }
     }
   };
   
@@ -98,17 +112,12 @@
         //console.log('lazy: scroll: '+pageYOffset);
         onLazy();
       }
-      // 初回スクロールイベント
       if (pageYOffset) {
         // loadイベント前にスクロールイベントが発生した場合、ページ先頭にいない前提
         // 補足：次のパータンの時、初回スクロールイベントを取り逃します
         //       スクロールイベントがloadイベント前に発生する && loadイベント時にページ先頭にいる
-        dispatchCustomEvent('lazyed');
+        onLazyed();
       } else {
-        var onLazyed = function() {
-          removeEventListener('scroll', onLazyed, options);
-          dispatchCustomEvent('lazyed');
-        };
         addEventListener('scroll', onLazyed, options);
       }
       //console.log('lazy: loaded');
