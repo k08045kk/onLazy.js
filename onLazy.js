@@ -1,4 +1,4 @@
-/*! onLazy.js v1.9 | MIT License | https://github.com/k08045kk/onLazy.js/blob/master/LICENSE */
+/*! onLazy.js v2.1 | MIT License | https://github.com/k08045kk/onLazy.js/blob/master/LICENSE */
 /**
  * onLazy.js
  * カスタムイベントとして遅延イベントを追加します。
@@ -18,22 +18,10 @@
  * 登録：window.addEventListener('toolazy', func);  // 初回ユーザイベント未発生時のunloadイベント
  * 対応：IE9+ (addEventListener, createEvent, initCustomEvent, pageYOffset)
  * @auther      toshi (https://github.com/k08045kk)
- * @version     1.9
- * @see         1 - 20190601 - add - 初版
- * @see         1.1 - 20200116 - update - FID対策として、setTimeoutでlazy処理を更に遅延
- * @see         1.2 - 20200117 - update - FID対策として、addEventListener()にoptionsを設定
- * @see         1.3 - 20200117 - update - イベント種類を変更、スクロール位置の取得方法変更
- * @see         1.4 - 20200117 - update - スクロール位置の取得方法変更
- * @see         1.5 - 20200123 - update - toolazyを追加
- * @see         1.6 - 20200124 - update - リファクタリング（loadイベント時も遅延させる）
- * @see         1.7 - 20200201 - update - リファクタリング
- * @see         1.8 - 20200209 - update - FID対策として、バブリングフェーズまで待機するように変更
- * @see         1.8 - 20200215 - update - FID対策として、イベント種別変更（over -> down, move）
- * @see         1.8 - 20200215 - update - lazyイベントをバブリングなし・キャンセル不可とする
- * @see         1.8 - 20200215 - update - setTimeoutでのlazy処理を削除
- * @see         1.9 - 20200301 - update - lazyedイベントを追加（初回スクロールイベント）
- * @see         1.9 - 20200302 - update - onlazy, onlazyed, ontoolazyを追加
- * @see         1.9 - 20200302 - update - lazyの検出イベントにfocusを追加
+ * @version     2.1
+ * @see         1 - 20190601 - 初版
+ * @see         2 - 20200408 - v2.0
+ * @see         2.1 - 20200408 - update - lazyイベントをDOMContentLoaded以降に発生するように仕様変更
  */
 (function(window, document) {
   'use strict';
@@ -98,31 +86,33 @@
     }
   };
   
-  // ページ読込み完了イベント
+  // ページ読込み完了イベント（DOMContentLoaded以降）
   var onLoad = function() {
-    load = true;
-    //console.log('lazy: load');
-    
-    // 既に発火済み or ドキュメントの途中（更新時 or ページ内リンク時）
-    if (fire || pageYOffset) {
-      //console.log('lazy: fire: '+fire);
-      //console.log('lazy: scroll: '+pageYOffset);
-      onLazy();
-    }
-    // 初回スクロールイベント
-    if (pageYOffset) {
-      // loadイベント前にスクロールイベントが発生した場合、ページ先頭にいない前提
-      // 補足：次のパータンの時、初回スクロールイベントを取り逃します
-      //       スクロールイベントがloadイベント前に発生する && loadイベント時にページ先頭にいる
-      dispatchCustomEvent('lazyed');
-    } else {
-      var onLazyed = function() {
-        removeEventListener('scroll', onLazyed, options);
+    if (!load) {
+      load = true;
+      //console.log('lazy: load');
+      
+      // 既に発火済み or ドキュメントの途中（更新時 or ページ内リンク時）
+      if (fire || pageYOffset) {
+        //console.log('lazy: fire: '+fire);
+        //console.log('lazy: scroll: '+pageYOffset);
+        onLazy();
+      }
+      // 初回スクロールイベント
+      if (pageYOffset) {
+        // loadイベント前にスクロールイベントが発生した場合、ページ先頭にいない前提
+        // 補足：次のパータンの時、初回スクロールイベントを取り逃します
+        //       スクロールイベントがloadイベント前に発生する && loadイベント時にページ先頭にいる
         dispatchCustomEvent('lazyed');
-      };
-      addEventListener('scroll', onLazyed, options);
+      } else {
+        var onLazyed = function() {
+          removeEventListener('scroll', onLazyed, options);
+          dispatchCustomEvent('lazyed');
+        };
+        addEventListener('scroll', onLazyed, options);
+      }
+      //console.log('lazy: loaded');
     }
-    //console.log('lazy: loaded');
   };
   
   // ページ開放イベント
@@ -139,11 +129,15 @@
   
   // main
   eachEventListener(addEventListener);
-  if (document.readyState != 'complete') {
-    // loadイベント開始前
+  if (document.readyState != 'interactive' && document.readyState != 'complete') {
+    // DOMContentLoadedイベント開始前
+    addEventListener('DOMContentLoaded', onLoad);
     addEventListener('load', onLoad);
   } else {
-    // loadイベント開始後
+    // DOMContentLoadedイベント開始後（正確には、DOMContentLoadedより前である可能性がある）
+    // interactiveは、DOMContentLoaded前のドキュメント解析完了後のスクリプトより前に設定される
+    // interactiveは、defer属性のスクリプト実行前に設定される
+    // DOMContentLoadedイベントは、defer属性のスクリプト実行後に実行される
     onLoad();
   }
   addEventListener('unload', onUnload);
