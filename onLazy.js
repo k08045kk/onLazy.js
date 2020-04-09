@@ -1,4 +1,4 @@
-/*! onLazy.js v2.3 | MIT License | https://github.com/k08045kk/onLazy.js/blob/master/LICENSE */
+/*! onLazy.js v2.4 | MIT License | https://github.com/k08045kk/onLazy.js/blob/master/LICENSE */
 /**
  * onLazy.js
  * カスタムイベントとして遅延イベントを追加します。
@@ -18,12 +18,13 @@
  * 登録：window.addEventListener('toolazy', func);  // 初回ユーザイベント未発生時のunloadイベント
  * 対応：IE9+ (addEventListener, createEvent, initCustomEvent, pageYOffset)
  * @auther      toshi (https://github.com/k08045kk)
- * @version     2.3
+ * @version     2.4
  * @see         1 - 20190601 - 初版
  * @see         2 - 20200408 - v2.0
  * @see         2.1 - 20200408 - update - lazyイベントをDOMContentLoaded以降に発生するように仕様変更
  * @see         2.2 - 20200408 - update - スクロール不可時、lazyでlazyedイベントを合わせて実施する
  * @see         2.3 - 20200409 - update - 各種イベントを解除する
+ * @see         2.4 - 20200409 - fix - constが使用されている
  */
 (function(window, document) {
   'use strict';
@@ -60,7 +61,7 @@
       evt.initCustomEvent(type, false, false, data);
     }
     try {
-      const onevent = window['on'+type];
+      var onevent = window['on'+type];
       if (onevent) { onevent(evt); }
     } catch (e) {}
     try {
