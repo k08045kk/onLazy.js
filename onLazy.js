@@ -38,7 +38,7 @@
   var lazyed = false;
   // イベント種類
   // lazyイベントは、より早く発火することが望ましいが、FIDに悪影響を与えるべきではない。
-  // そのため、mouseover/pointeroverではなく、mosedown/mousemove/pointerdown/pointermoveとする。
+  // そのため、mouseover/pointeroverではなく、mousedown/mousemove/pointerdown/pointermoveとする。
   // 想定初回イベント: PC:mousedown/mousemove/focus/scroll, SP:touchstart(scroll)
   var types = ['click','mousedown','keydown','touchstart','pointerdown','mousemove','pointermove','focus','scroll'];
   // バブリングフェーズ、1回のみ、中断なし
