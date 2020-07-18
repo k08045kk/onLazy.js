@@ -1,4 +1,4 @@
-/*! onLazy.js v2.6 | MIT License | https://github.com/k08045kk/onLazy.js/blob/master/LICENSE */
+/*! onLazy.js v2.7 | MIT License | https://github.com/k08045kk/onLazy.js/blob/master/LICENSE */
 /**
  * onLazy.js
  * カスタムイベントとして遅延イベントを追加します。
@@ -19,7 +19,7 @@
  * 登録：window.addEventListener('toolazy', func);  // 初回ユーザイベント未発生時のunloadイベント
  * 対応：IE9+ (addEventListener, createEvent, initCustomEvent, pageYOffset)
  * @auther      toshi (https://github.com/k08045kk)
- * @version     2.6
+ * @version     2.7
  * @see         1 - 20190601 - 初版
  * @see         2 - 20200408 - v2.0
  * @see         2.1 - 20200408 - update - lazyイベントをDOMContentLoaded以降に発生するように仕様変更
@@ -28,6 +28,7 @@
  * @see         2.4 - 20200409 - fix - constが使用されている
  * @see         2.5 - 20200410 - fix - lazyedが暴発することがある
  * @see         2.6 - 20200410 - update - リファクタリング
+ * @see         2.7 - 20200719 - update - リファクタリング
  */
 (function(window, document) {
   'use strict';
@@ -137,7 +138,7 @@
       }
       if (y) {
         // loadイベント前にスクロールイベントが発生した場合、ページ先頭にいない前提
-        // 補足：次のパータンの時、初回スクロールイベントを取り逃します
+        // 補足：次のパータンの時、初回スクロールイベントを取り逃す
         //       スクロールイベントがloadイベント前に発生する && loadイベント時にページ先頭にいる
         onLazyed();
       } else {
@@ -149,8 +150,7 @@
   
   // main
   eachEventListener(add);
-  var state = document.readyState;
-  if (state != 'interactive' && state != 'complete') {
+  if (document.readyState == 'loading') {
     // DOMContentLoadedイベント開始前
     add('DOMContentLoaded', onLoad);
     add('load', onLoad);
