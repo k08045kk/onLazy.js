@@ -1,4 +1,4 @@
-/*! onLazy.js v2.7 | MIT License | https://github.com/k08045kk/onLazy.js/blob/master/LICENSE */
+/*! onLazy.js v2.8 | MIT License | https://github.com/k08045kk/onLazy.js/blob/master/LICENSE */
 /**
  * onLazy.js
  * カスタムイベントとして遅延イベントを追加します。
@@ -19,7 +19,7 @@
  * 登録：window.addEventListener('toolazy', func);  // 初回ユーザイベント未発生時のunloadイベント
  * 対応：IE9+ (addEventListener, createEvent, initCustomEvent, pageYOffset)
  * @auther      toshi (https://github.com/k08045kk)
- * @version     2.7
+ * @version     2.8
  * @see         1 - 20190601 - 初版
  * @see         2 - 20200408 - v2.0
  * @see         2.1 - 20200408 - update - lazyイベントをDOMContentLoaded以降に発生するように仕様変更
@@ -29,8 +29,11 @@
  * @see         2.5 - 20200410 - fix - lazyedが暴発することがある
  * @see         2.6 - 20200410 - update - リファクタリング
  * @see         2.7 - 20200719 - update - リファクタリング
+ * @see         2.8 - 20201222 - update - リロード以外をハッシュで簡易判定する
+ * @see         2.8 - 20201222 - update - window.onEventを廃止
+ * @see         2.8 - 20201222 - update - unloadをpagehideに変更（Lighthouse指摘対応）
  */
-(function(window, document) {
+(function(document) {
   'use strict';
   
   var lazy = false;
@@ -68,10 +71,6 @@
       evt.initCustomEvent(type, false, false, data);
     }
     try {
-      var onevent = window['on'+type];
-      if (onevent) { onevent(evt); }
-    } catch (e) {}
-    try {
       dispatchEvent(evt);
     } catch (e) {}
     //console.log('lazy: dispatch');
@@ -93,7 +92,10 @@
     remove('scroll', onLazyed, options);
     if (!lazyed) {
       lazyed = true;
-      dispatchCustomEvent('lazyed');
+      onLazy();
+      setTimeout(function() {
+        dispatchCustomEvent('lazyed');
+      }, 0);
     }
   };
   
@@ -114,8 +116,9 @@
       //console.log('lazy: lazy');
       
       dispatchCustomEvent('lazy');
-      remove('unload', onUnload);
-      if (window.innerHeight == document.documentElement.scrollHeight) {
+      remove('pagehide', onUnload);
+      if (innerHeight == document.documentElement.scrollHeight) {
+        // ページが画面内に完全に収まっている時（スクロールイベントが発生しない時）
         onLazyed();
       }
     }
@@ -123,14 +126,15 @@
   
   // ページ読込み完了イベント（DOMContentLoaded以降）
   var onLoad = function() {
-    remove('load', onLoad);
     remove('DOMContentLoaded', onLoad);
     if (!load) {
       load = true;
       //console.log('lazy: load');
       
       // 既に発火済み or ドキュメントの途中（更新時 or ページ内リンク時）
-      var y = pageYOffset;
+      // リロード（or未定義）以外であれば、ハッシュだけで判定する
+      var type = performance.navigation.type;
+      var y = !((type == 0 || type == 2) && location.hash == '') && pageYOffset;
       if (fire || y) {
         //console.log('lazy: fire: '+fire);
         //console.log('lazy: scroll: '+pageYOffset);
@@ -153,7 +157,6 @@
   if (document.readyState == 'loading') {
     // DOMContentLoadedイベント開始前
     add('DOMContentLoaded', onLoad);
-    add('load', onLoad);
   } else {
     // DOMContentLoadedイベント開始後（正確には、DOMContentLoadedより前である可能性がある）
     // interactiveは、DOMContentLoaded前のドキュメント解析完了後のスクリプトより前に設定される
@@ -161,7 +164,7 @@
     // DOMContentLoadedイベントは、defer属性のスクリプト実行後に実行される
     onLoad();
   }
-  add('unload', onUnload);
+  add('pagehide', onUnload);
   //console.log('lazy: init');
   
-})(window, document);
+})(document);
