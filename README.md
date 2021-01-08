@@ -21,7 +21,7 @@ The lazy event can only occur once.
 	// First scroll event
 	window.addEventListener('lazyed', func);
 	
-	// When the first user event does not occur, the unload event
+	// When the first user event does not occur, the pagehide event
 	window.addEventListener('toolazy', func);
 
 
