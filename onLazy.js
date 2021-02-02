@@ -1,45 +1,43 @@
-/*! onLazy.js v3.0 | MIT License | https://github.com/k08045kk/onLazy.js/blob/master/LICENSE */
+/*! onLazy.js v3.1 | MIT License | https://github.com/k08045kk/onLazy.js/blob/master/LICENSE */
 /**
  * onLazy.js
  * カスタムイベントとして遅延イベントを追加します。
  * 遅延イベントは、次の3つです。
- * + lazy（初回ユーザイベント）
- * + lazyed（初回スクロールイベント）
- * + toolazy（初回ユーザイベント未発生時、pagehideイベント）
- * 遅延イベントは、DOMContentLoadedイベント以降の初回ユーザイベント後に発火します。
- * 遅延イベントは、DOMContentLoadedイベント以前にユーザイベントが発火した場合、イベント後に発火します。
- * 遅延イベントは、DOMContentLoadedイベント時にドキュメント先頭でない場合、イベント後に発火します。
- * 遅延イベントは、一度しか発生しません。
- * 注意：初回ユーザイベントより後に発火します。初回ユーザイベントは、取り逃す前提で処理してください。
- * 注意：イベント登録は、「DOMContentLoadedイベントより前」「onLazy.js実行より前」に実施して下さい。
- * 登録：window.addEventListener('lazy', func); // 初回ユーザイベント
- * 登録：window.addEventListener('lazyed', func); // 初回スクロールイベント
- * 登録：window.addEventListener('toolazy', func);  // 初回ユーザイベント未発生時のpagehideイベント
- * 対応：IE9+ (addEventListener, createEvent, initCustomEvent, pageYOffset)
+ *   lazy（初回ユーザイベント）
+ *   lazyed（初回スクロールイベント）
+ *   toolazy（初回ユーザイベント未発生時のページクローズイベント）
+ * 遅延イベントは、初回ユーザイベント後に発火します。
+ * 遅延イベントは、ページ表示時にドキュメント先頭でない場合も、発火します。
+ * 遅延イベントは、一度しか発火しません。
+ * 注意：初回ユーザイベントより後に発火します。初回ユーザイベントは、取り逃します。
+ * 注意：リスナー登録は、「DOMContentLoadedより前」または、「onLazy.js実行より前」に実施して下さい。
+ * 登録：例：window.addEventListener('lazy', func);
+ * 対応：IE9+（addEventListener, createEvent, initCustomEvent, pageYOffset）
  * @auther      toshi (https://github.com/k08045kk)
- * @version     3.0
- * @see         1 - 20190601 - 初版
- * @see         2 - 20200408 - v2.0
- * @see         2.1 - 20200408 - lazyイベントをDOMContentLoaded以降に発生するように仕様変更
- * @see         2.2 - 20200408 - スクロール不可時、lazyでlazyedイベントを合わせて実施する
- * @see         2.3 - 20200409 - 各種イベントを解除する
- * @see         2.4 - 20200409 - fix constが使用されている
- * @see         2.5 - 20200410 - fix lazyedが暴発することがある
- * @see         2.6 - 20200410 - リファクタリング
- * @see         2.7 - 20200719 - リファクタリング
- * @see         2.8 - 20201222 - リロード以外をハッシュで簡易判定する
- * @see         2.8 - 20201222 - window.onEventを廃止
- * @see         2.8 - 20201222 - unloadをpagehideに変更（Lighthouse指摘対応）
- * @see         2.9 - 20201228 - scrollリスナーを1個に統合
- * @see         3.0 - 20210108 - イベント発動をsetTimeoutで遅延する+他
+ * @license     MIT License
+ * @see         https://github.com/k08045kk/onLazy.js/blob/master/LICENSE
+ * @version     3.1
+ * @note        1.0 - 20190601 - 初版
+ * @note        2.0 - 20200408 - v2.0
+ * @note        2.1 - 20200408 - lazyイベントをDOMContentLoaded以降に発生するように仕様変更
+ * @note        2.2 - 20200408 - スクロール不可時、lazyでlazyedイベントを合わせて実施する
+ * @note        2.3 - 20200409 - 各種イベントを解除する
+ * @note        2.4 - 20200409 - fix constが使用されている
+ * @note        2.5 - 20200410 - fix lazyedが暴発することがある
+ * @note        2.6 - 20200410 - リファクタリング
+ * @note        2.7 - 20200719 - リファクタリング
+ * @note        2.8 - 20201222 - リロード以外をハッシュで簡易判定する
+ * @note        2.8 - 20201222 - window.onEventを廃止
+ * @note        2.8 - 20201222 - unloadをpagehideに変更（Lighthouse指摘対応）
+ * @note        2.9 - 20201228 - scrollリスナーを1個に統合
+ * @note        3.0 - 20210108 - イベント発動をsetTimeoutで遅延する+他
+ * @note        3.1 - 20210203 - requestAnimationFrameを導入
+ * @see         https://github.com/k08045kk/onLazy.js
  */
 (function(document) {
   'use strict';
   
-  var lazy = false;
-  var load = false;
-  var fire = false;
-  var lazyed = false;
+  var fire, load, loaded, lazy, lazyed;
   // イベント種類
   // 想定初回イベント: despktop:mousedown/mousemove/focus/scroll, mobile:touchstart/focus/scroll
   var types = ['click','mousedown','keydown','touchstart','mousemove','focus'];
@@ -87,10 +85,12 @@
   
   // 初回スクロールイベント
   var onLazyed = function() {
-    remove('scroll', onLazyed, options);
     if (!lazyed) {
       lazyed = true;
-      onLazy();
+      remove('scroll', onLazyed, options);
+      !lazy && onLazy();
+      //console.log('lazy: lazyed');
+      
       setTimeout(function() {
         dispatchCustomEvent('lazyed');
       }, 0);
@@ -104,9 +104,8 @@
       // load前：loadで遅延処理実行
       // load後：このまま遅延処理実行
       fire = true;
-      //console.log('lazy: fire');
-      
       eachEventListener(remove);
+      //console.log('lazy: fire');
     }
     if (!lazy && load) {
       // 複数呼び出し回避
@@ -116,7 +115,7 @@
       setTimeout(function() {
         dispatchCustomEvent('lazy');
         remove('pagehide', onUnload, options);
-        if (innerHeight == document.documentElement.scrollHeight) {
+        if (!lazyed && innerHeight == document.documentElement.scrollHeight) {
           // ページが画面内に完全に収まっている時（スクロールイベントが発生しない時）
           onLazyed();
         }
@@ -124,24 +123,11 @@
     }
   };
   
-  // ページ読込み完了イベント（DOMContentLoaded以降）
-  var onLoad = function() {
-    if (!load) {
-      load = true;
-      //console.log('lazy: load');
-      
-      // 既に発火済み or ドキュメントの途中（更新時 or ページ内リンク時）
-      // 初回表示であれば、ハッシュだけで判定する
-      var y = !(performance.navigation.type == 0 && location.hash == '') && pageYOffset;
-      if (fire || y) {
-        //console.log('lazy: fire: '+fire);
-        //console.log('lazy: scroll: '+pageYOffset);
-        onLazy();
-      }
-      if (y) {
-        // loadイベント前にスクロールイベントが発生した場合、ページ先頭にいない前提
-        // 補足：次のパータンの時、初回スクロールイベントを取り逃す
-        //       スクロールイベントがloadイベント前に発生する && loadイベント時にページ先頭にいる
+  // ページ読込み完了イベント
+  var onLoaded = function(scroll) {
+    if (!loaded) {
+      loaded = true;
+      if (scroll) {
         onLazyed();
       } else {
         add('scroll', onLazyed, options);
@@ -150,10 +136,39 @@
     }
   };
   
+  // ページ読込みイベント（DOMContentLoaded以降）
+  var onLoad = function() {
+    if (!load) {
+      load = true;
+      //console.log('lazy: load');
+      
+      // 発火済み
+      if (fire) {
+        onLazy();
+      }
+      
+      // ドキュメントの途中（リロード or 履歴 or ページ内リンク）
+      if (!performance.navigation.type && !location.hash) {
+        // 通常表示であれば、ハッシュだけで判定する
+        onLoaded(false);
+      } else if (requestAnimationFrame) {
+        // 強制レイアウト（pageYOffset）の問題がないタイミング（requestAnimationFrame）まで待機する
+        requestAnimationFrame(function() { onLoaded(pageYOffset); });
+        if (document.readyState !== 'complete') {
+          // 非表示の時、requestAnimationFrameが発生しないため、loadイベントで強制起動する
+          add('load', function() { onLoaded(pageYOffset); }, options);
+        }
+      } else {
+        // requestAnimationFrame非対応用（IE9）
+        onLoaded(pageYOffset);
+      }
+    }
+  };
+  
   // main
   add('pagehide', onUnload, options);
   eachEventListener(add);
-  if (document.readyState == 'loading') {
+  if (document.readyState === 'loading') {
     // DOMContentLoadedイベント開始前
     add('DOMContentLoaded', onLoad, options);
   } else {
