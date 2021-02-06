@@ -1,4 +1,4 @@
-/*! onLazy.js v3.1 | MIT License | https://github.com/k08045kk/onLazy.js/blob/master/LICENSE */
+/*! onLazy.js v3.2 | MIT License | https://github.com/k08045kk/onLazy.js/blob/master/LICENSE */
 /**
  * onLazy.js
  * カスタムイベントとして遅延イベントを追加します。
@@ -16,7 +16,7 @@
  * @auther      toshi (https://github.com/k08045kk)
  * @license     MIT License
  * @see         https://github.com/k08045kk/onLazy.js/blob/master/LICENSE
- * @version     3.1
+ * @version     3.2
  * @note        1.0 - 20190601 - 初版
  * @note        2.0 - 20200408 - v2.0
  * @note        2.1 - 20200408 - lazyイベントをDOMContentLoaded以降に発生するように仕様変更
@@ -32,17 +32,18 @@
  * @note        2.9 - 20201228 - scrollリスナーを1個に統合
  * @note        3.0 - 20210108 - イベント発動をsetTimeoutで遅延する+他
  * @note        3.1 - 20210203 - requestAnimationFrameを導入
+ * @note        3.2 - 20210206 - fix グローバル変数のチェック漏れ
  * @see         https://github.com/k08045kk/onLazy.js
  */
 (function(document) {
   'use strict';
   
-  var fire, load, loaded, lazy, lazyed;
+  var isFire, isLoad, isLoaded, isLazy, isLazyed;
   // イベント種類
   // 想定初回イベント: despktop:mousedown/mousemove/focus/scroll, mobile:touchstart/focus/scroll
   var types = ['click','mousedown','keydown','touchstart','mousemove','focus'];
   // バブリングフェーズ、1回のみ、中断なし
-  var options = {capture:false, once:true, passive:true};
+  var option = {capture:false, once:true, passive:true};
   
   var add = addEventListener;
   var remove = removeEventListener;
@@ -50,7 +51,7 @@
   // onLazyの登録と解除
   var eachEventListener = function(callback) {
     for (var i=0, len=types.length; i<len; i++) {
-      callback(types[i], onLazy, options);
+      callback(types[i], onLazy, option);
     }
   };
   
@@ -74,10 +75,10 @@
   
   // ページ開放イベント
   var onUnload = function() {
-    if (!lazy) {
+    if (!isLazy) {
       // 遅延イベント不発時のイベント
       // unloadイベントのため、確実に処理されるとは保証できない
-      lazy = true;
+      isLazy = true;
       dispatchCustomEvent('toolazy');
     }
     //console.log('lazy: unload');
@@ -85,10 +86,10 @@
   
   // 初回スクロールイベント
   var onLazyed = function() {
-    if (!lazyed) {
-      lazyed = true;
-      remove('scroll', onLazyed, options);
-      !lazy && onLazy();
+    if (!isLazyed) {
+      isLazyed = true;
+      remove('scroll', onLazyed, option);
+      !isLazy && onLazy();
       //console.log('lazy: lazyed');
       
       setTimeout(function() {
@@ -99,23 +100,23 @@
   
   // 初回ユーザイベント
   var onLazy = function() {
-    if (!fire) {
+    if (!isFire) {
       // 初回イベントでリスナー解除（load前の複数回呼び出しを回避）
       // load前：loadで遅延処理実行
       // load後：このまま遅延処理実行
-      fire = true;
+      isFire = true;
       eachEventListener(remove);
       //console.log('lazy: fire');
     }
-    if (!lazy && load) {
+    if (!isLazy && isLoad) {
       // 複数呼び出し回避
-      lazy = true;
+      isLazy = true;
       //console.log('lazy: lazy');
       
       setTimeout(function() {
         dispatchCustomEvent('lazy');
-        remove('pagehide', onUnload, options);
-        if (!lazyed && innerHeight == document.documentElement.scrollHeight) {
+        remove('pagehide', onUnload, option);
+        if (!isLazyed && innerHeight == document.documentElement.scrollHeight) {
           // ページが画面内に完全に収まっている時（スクロールイベントが発生しない時）
           onLazyed();
         }
@@ -124,13 +125,13 @@
   };
   
   // ページ読込み完了イベント
-  var onLoaded = function(scroll) {
-    if (!loaded) {
-      loaded = true;
-      if (scroll) {
+  var onLoaded = function(y) {
+    if (!isLoaded) {
+      isLoaded = true;
+      if (y) {
         onLazyed();
       } else {
-        add('scroll', onLazyed, options);
+        add('scroll', onLazyed, option);
       }
       //console.log('lazy: loaded');
     }
@@ -138,25 +139,25 @@
   
   // ページ読込みイベント（DOMContentLoaded以降）
   var onLoad = function() {
-    if (!load) {
-      load = true;
+    if (!isLoad) {
+      isLoad = true;
       //console.log('lazy: load');
       
       // 発火済み
-      if (fire) {
+      if (isFire) {
         onLazy();
       }
       
       // ドキュメントの途中（リロード or 履歴 or ページ内リンク）
-      if (!performance.navigation.type && !location.hash) {
+      if (typeof(performance) && !performance.navigation.type && !location.hash) {
         // 通常表示であれば、ハッシュだけで判定する
-        onLoaded(false);
-      } else if (requestAnimationFrame) {
+        onLoaded(0);
+      } else if (typeof(requestAnimationFrame)) {
         // 強制レイアウト（pageYOffset）の問題がないタイミング（requestAnimationFrame）まで待機する
         requestAnimationFrame(function() { onLoaded(pageYOffset); });
         if (document.readyState !== 'complete') {
-          // 非表示の時、requestAnimationFrameが発生しないため、loadイベントで強制起動する
-          add('load', function() { onLoaded(pageYOffset); }, options);
+          // 非表示の時、requestAnimationFrameが発生しないため、最悪loadイベントで強制起動する
+          add('load', function() { onLoaded(pageYOffset); }, option);
         }
       } else {
         // requestAnimationFrame非対応用（IE9）
@@ -166,11 +167,11 @@
   };
   
   // main
-  add('pagehide', onUnload, options);
+  add('pagehide', onUnload, option);
   eachEventListener(add);
   if (document.readyState === 'loading') {
     // DOMContentLoadedイベント開始前
-    add('DOMContentLoaded', onLoad, options);
+    add('DOMContentLoaded', onLoad, option);
   } else {
     // DOMContentLoadedイベント開始後（正確には、DOMContentLoadedより前である可能性がある）
     // interactiveは、DOMContentLoaded前のドキュメント解析完了後のスクリプトより前に設定される
