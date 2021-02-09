@@ -1,4 +1,4 @@
-/*! onLazy.js v3.2 | MIT License | https://github.com/k08045kk/onLazy.js/blob/master/LICENSE */
+/*! onLazy.js v3.3 | MIT License | https://github.com/k08045kk/onLazy.js/blob/master/LICENSE */
 /**
  * onLazy.js
  * カスタムイベントとして遅延イベントを追加します。
@@ -10,13 +10,13 @@
  * 遅延イベントは、ページ表示時にドキュメント先頭でない場合も、発火します。
  * 遅延イベントは、一度しか発火しません。
  * 注意：初回ユーザイベントより後に発火します。初回ユーザイベントは、取り逃します。
- * 注意：リスナー登録は、「DOMContentLoadedより前」または、「onLazy.js実行より前」に実施して下さい。
+ * 注意：リスナー登録は、「DOMContentLoadedより前」または、「onLazy.js実行より前」に実施してください。
  * 登録：例：window.addEventListener('lazy', func);
  * 対応：IE9+（addEventListener, createEvent, initCustomEvent, pageYOffset）
  * @auther      toshi (https://github.com/k08045kk)
  * @license     MIT License
  * @see         https://github.com/k08045kk/onLazy.js/blob/master/LICENSE
- * @version     3.2
+ * @version     3.3
  * @note        1.0 - 20190601 - 初版
  * @note        2.0 - 20200408 - v2.0
  * @note        2.1 - 20200408 - lazyイベントをDOMContentLoaded以降に発生するように仕様変更
@@ -33,6 +33,7 @@
  * @note        3.0 - 20210108 - イベント発動をsetTimeoutで遅延する+他
  * @note        3.1 - 20210203 - requestAnimationFrameを導入
  * @note        3.2 - 20210208 - fix グローバル変数のチェック漏れ
+ * @note        3.3 - 20210209 - requestAnimationFrameを導入2
  * @see         https://github.com/k08045kk/onLazy.js
  */
 (function(window, document) {
@@ -55,7 +56,7 @@
     }
   };
   
-  // カスタムイベントの発信
+  // カスタムイベントの発火
   var dispatchCustomEvent = function(type) {
     var evt;
     var data = void 0;
@@ -63,7 +64,7 @@
       // バブルアップなし、キャンセル不可
       evt = new CustomEvent(type, {bubbles:false, cancelable:false, detail:data});
     } catch (e) {
-      // IE11-9
+      // IE9-11
       evt = document.createEvent('CustomEvent');
       evt.initCustomEvent(type, false, false, data);
     }
@@ -73,11 +74,10 @@
     //console.log('lazy: dispatch');
   };
   
-  // ページ開放イベント
-  var onUnload = function() {
+  // 初回ユーザイベント未発生時のページクローズイベント
+  var onTooLazy = function() {
+    remove('pagehide', onTooLazy, option);
     if (!isLazy) {
-      // 遅延イベント不発時のイベント
-      // unloadイベントのため、確実に処理されるとは保証できない
       isLazy = true;
       dispatchCustomEvent('toolazy');
     }
@@ -86,26 +86,27 @@
   
   // 初回スクロールイベント
   var onLazyed = function() {
+    remove('scroll', onLazyed, option);
     if (!isLazyed) {
       isLazyed = true;
-      remove('scroll', onLazyed, option);
       !isLazy && onLazy();
       //console.log('lazy: lazyed');
       
       setTimeout(function() {
         dispatchCustomEvent('lazyed');
       }, 0);
+      // 補足：（scroll登録の関係上）既にisLoadedは完了している
     }
   };
   
   // 初回ユーザイベント
   var onLazy = function() {
     if (!isFire) {
-      // 初回イベントでリスナー解除（load前の複数回呼び出しを回避）
-      // load前：loadで遅延処理実行
-      // load後：このまま遅延処理実行
-      isFire = true;
+      // 初回イベントでリスナー解除（onLoad前の複数回呼び出しを回避）
+      // isLoad前：onLoadで遅延処理実行
+      // isLoad後：このまま処理実行
       eachEventListener(remove);
+      isFire = true;
       //console.log('lazy: fire');
     }
     if (!isLazy && isLoad) {
@@ -115,11 +116,16 @@
       
       setTimeout(function() {
         dispatchCustomEvent('lazy');
-        remove('pagehide', onUnload, option);
-        if (!isLazyed && innerHeight == document.documentElement.scrollHeight) {
-          // ページが画面内に完全に収まっている時（スクロールイベントが発生しない時）
-          onLazyed();
-        }
+        remove('pagehide', onTooLazy, option);
+        
+        var forcedScrollIfNecessary = function() {
+          if (!isLazyed && innerHeight == document.documentElement.scrollHeight) {
+            // ページが画面内に完全に収まっている時（スクロールイベントが発生しない時）
+            onLazyed();
+          }
+        };
+        if (window.requestAnimationFrame) { requestAnimationFrame(forcedScrollIfNecessary); }
+        else { forcedScrollIfNecessary(); }
       }, 0);
     }
   };
@@ -153,10 +159,10 @@
         // 通常表示であれば、ハッシュだけで判定する
         onLoaded(0);
       } else if (window.requestAnimationFrame) {
-        // 強制レイアウト（pageYOffset）の問題がないタイミング（requestAnimationFrame）まで待機する
+        // 強制レイアウト（pageYOffset）の問題がないタイミングまで待機する
         requestAnimationFrame(function() { onLoaded(pageYOffset); });
         if (document.readyState !== 'complete') {
-          // 非表示の時、requestAnimationFrameが発生しないため、最悪loadイベントで強制起動する
+          // 非表示の場合、requestAnimationFrameが発生しないため、最悪loadイベントで強制起動する
           add('load', function() { onLoaded(pageYOffset); }, option);
         }
       } else {
@@ -167,7 +173,7 @@
   };
   
   // main
-  add('pagehide', onUnload, option);
+  add('pagehide', onTooLazy, option);
   eachEventListener(add);
   if (document.readyState === 'loading') {
     // DOMContentLoadedイベント開始前
