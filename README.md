@@ -9,6 +9,7 @@ Add a lazy event as a custom event.
 The lazy event will be fired after the first user event after the `DOMContentLoaded` event.
 If the user event occurs before the `DOMContentLoaded` event, the lazy event will be fired right after the `DOMContentLoaded` event. Also, if it is not at the beginning of the document, it will be fired right after the `DOMContentLoaded` event.
 The lazy event will be fired only once.
+
 User event here means `click / mousedown / keydown / touchstart / mousemove / focus / scroll`.
 
 
