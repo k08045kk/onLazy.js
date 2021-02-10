@@ -6,23 +6,24 @@ Add a lazy event as a custom event.
 
 
 ## Description
-The lazy event fires after the first user event after the DOMContentLoaded event.
-The lazy event fires at the DOMContentLoaded event if the user event fires before the DOMContentLoaded event.
-The lazy event will also fire at the DOMContentLoaded event if it is not at the beginning of the document.
-The lazy event can only occur once.
+The lazy event will be fired after the first user event after the `DOMContentLoaded` event.
+If the user event occurs before the `DOMContentLoaded` event, the lazy event will be fired right after the `DOMContentLoaded` event. Also, if it is not at the beginning of the document, it will be fired right after the `DOMContentLoaded` event.
+The lazy event will be fired only once.
+User event here means `click / mousedown / keydown / touchstart / mousemove / focus / scroll`.
 
 
 
 ## Usage
+```js
+// First user event
+window.addEventListener('lazy', func);
 
-	// First user event
-	window.addEventListener('lazy', func);
-	
-	// First scroll event
-	window.addEventListener('lazyed', func);
-	
-	// When the first user event does not occur, the pagehide event
-	window.addEventListener('toolazy', func);
+// First scroll event
+window.addEventListener('lazyed', func);
+
+// When the first user event does not occur, the pagehide event
+window.addEventListener('toolazy', func);
+```
 
 
 
