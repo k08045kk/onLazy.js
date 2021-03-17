@@ -1,4 +1,4 @@
-/*! onLazy.js v3.3 | MIT License | https://github.com/k08045kk/onLazy.js/blob/master/LICENSE */
+/*! onLazy.js v3.4 | MIT License | https://github.com/k08045kk/onLazy.js/blob/master/LICENSE */
 /**
  * onLazy.js
  * カスタムイベントとして遅延イベントを追加します。
@@ -16,7 +16,7 @@
  * @auther      toshi (https://github.com/k08045kk)
  * @license     MIT License
  * @see         https://github.com/k08045kk/onLazy.js/blob/master/LICENSE
- * @version     3.3
+ * @version     3.4
  * @note        1.0 - 20190601 - 初版
  * @note        2.0 - 20200408 - v2.0
  * @note        2.1 - 20200408 - lazyイベントをDOMContentLoaded以降に発生するように仕様変更
@@ -34,6 +34,7 @@
  * @note        3.1 - 20210203 - requestAnimationFrameを導入
  * @note        3.2 - 20210208 - fix グローバル変数のチェック漏れ
  * @note        3.3 - 20210209 - requestAnimationFrameを導入2
+ * @note        3.4 - 20210318 - requestAnimationFrameを導入3
  * @see         https://github.com/k08045kk/onLazy.js
  */
 (function(window, document) {
@@ -51,7 +52,7 @@
   
   // onLazyの登録と解除
   var eachEventListener = function(callback) {
-    for (var i=0, len=types.length; i<len; i++) {
+    for (var i=types.length; i--; ) {
       callback(types[i], onLazy, option);
     }
   };
@@ -76,7 +77,6 @@
   
   // 初回ユーザイベント未発生時のページクローズイベント
   var onTooLazy = function() {
-    remove('pagehide', onTooLazy, option);
     if (!isLazy) {
       isLazy = true;
       dispatchCustomEvent('toolazy');
@@ -116,16 +116,11 @@
       
       setTimeout(function() {
         dispatchCustomEvent('lazy');
-        remove('pagehide', onTooLazy, option);
         
-        var forcedScrollIfNecessary = function() {
-          if (!isLazyed && innerHeight == document.documentElement.scrollHeight) {
-            // ページが画面内に完全に収まっている時（スクロールイベントが発生しない時）
-            onLazyed();
-          }
-        };
-        if (window.requestAnimationFrame) { requestAnimationFrame(forcedScrollIfNecessary); }
-        else { forcedScrollIfNecessary(); }
+        if (!isLazyed && innerHeight == document.documentElement.scrollHeight) {
+          // ページが画面内に完全に収まっている時（スクロールイベントが発生しない時）
+          onLazyed();
+        }
       }, 0);
     }
   };
@@ -142,6 +137,11 @@
       //console.log('lazy: loaded');
     }
   };
+  var onLazyLoaded = function() {
+    if (!isLoaded) {
+      onLoaded(pageYOffset);
+    }
+  };
   
   // ページ読込みイベント（DOMContentLoaded以降）
   var onLoad = function() {
@@ -154,20 +154,20 @@
         onLazy();
       }
       
-      // ドキュメントの途中（リロード or 履歴 or ページ内リンク）
-      if (window.performance && !performance.navigation.type && !location.hash) {
+      // ドキュメントの途中（リロード or 履歴 or 戻る or ページ内リンク）
+      var performance = window.performance;
+      var requestAnimationFrame = window.requestAnimationFrame;
+      if (performance && !performance.navigation.type && !location.hash) {
         // 通常表示であれば、ハッシュだけで判定する
         onLoaded(0);
-      } else if (window.requestAnimationFrame) {
+      } else if (requestAnimationFrame && document.readyState !== 'complete') {
         // 強制レイアウト（pageYOffset）の問題がないタイミングまで待機する
-        requestAnimationFrame(function() { onLoaded(pageYOffset); });
-        if (document.readyState !== 'complete') {
-          // 非表示の場合、requestAnimationFrameが発生しないため、最悪loadイベントで強制起動する
-          add('load', function() { onLoaded(pageYOffset); }, option);
-        }
+        requestAnimationFrame(onLazyLoaded);
+        // 非表示の場合、requestAnimationFrameが発生しないため、最悪loadイベントで強制起動する
+        add('load', onLazyLoaded, option);
       } else {
         // requestAnimationFrame非対応用（IE9）
-        onLoaded(pageYOffset);
+        onLazyLoaded();
       }
     }
   };
