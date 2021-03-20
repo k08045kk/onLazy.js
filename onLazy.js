@@ -1,4 +1,4 @@
-/*! onLazy.js v3.4 | MIT License | https://github.com/k08045kk/onLazy.js/blob/master/LICENSE */
+/*! onLazy.js v3.5 | MIT License | https://github.com/k08045kk/onLazy.js/blob/master/LICENSE */
 /**
  * onLazy.js
  * カスタムイベントとして遅延イベントを追加します。
@@ -16,7 +16,7 @@
  * @auther      toshi (https://github.com/k08045kk)
  * @license     MIT License
  * @see         https://github.com/k08045kk/onLazy.js/blob/master/LICENSE
- * @version     3.4
+ * @version     3.5
  * @note        1.0 - 20190601 - 初版
  * @note        2.0 - 20200408 - v2.0
  * @note        2.1 - 20200408 - lazyイベントをDOMContentLoaded以降に発生するように仕様変更
@@ -35,6 +35,7 @@
  * @note        3.2 - 20210208 - fix グローバル変数のチェック漏れ
  * @note        3.3 - 20210209 - requestAnimationFrameを導入2
  * @note        3.4 - 20210318 - requestAnimationFrameを導入3
+ * @note        3.5 - 20210320 - fix Firefoxでユーザ操作なしでfocusを取得する
  * @see         https://github.com/k08045kk/onLazy.js
  */
 (function(window, document) {
@@ -42,8 +43,8 @@
   
   var isFire, isLoad, isLoaded, isLazy, isLazyed;
   // イベント種類
-  // 想定初回イベント: despktop:mousedown/mousemove/focus/scroll, mobile:touchstart/focus/scroll
-  var types = ['click','mousedown','keydown','touchstart','mousemove','focus'];
+  // 想定初回イベント: despktop:mousedown/mousemove/scroll, mobile:touchstart/scroll
+  var types = ['click','mousedown','keydown','touchstart','mousemove'];
   // バブリングフェーズ、1回のみ、中断なし
   var option = {capture:false, once:true, passive:true};
   
