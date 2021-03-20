@@ -1,42 +1,41 @@
 /*! onLazy.js v3.6 | MIT License | github.com/k08045kk/onLazy.js/blob/master/LICENSE */
 /**
- * onLazy.js
- * カスタムイベントとして遅延イベントを追加します。
- * 遅延イベントは、次の3つです。
- *   lazy（初回ユーザイベント）
- *   lazyed（初回スクロールイベント）
- *   toolazy（初回ユーザイベント未発生時のページクローズイベント）
- * 遅延イベントは、初回ユーザイベント後に発火します。
- * 遅延イベントは、ページ表示時にドキュメント先頭でない場合も、発火します。
- * 遅延イベントは、一度しか発火しません。
- * 注意：初回ユーザイベントより後に発火します。初回ユーザイベントは、取り逃します。
- * 注意：リスナー登録は、「DOMContentLoadedより前」または、「onLazy.js実行より前」に実施してください。
- * 登録：例：window.addEventListener('lazy', func);
- * 対応：IE9+（addEventListener, createEvent, initCustomEvent, pageYOffset）
+ * @name        onLazy.js
+ * @description カスタムイベントとして遅延イベントを追加します。
+ *              遅延イベントは、次の3つです。
+ *                1. lazy（初回ユーザイベント）
+ *                2. lazyed（初回スクロールイベント）
+ *                3. toolazy（初回ユーザイベント未発生時のページクローズイベント）
+ *              遅延イベントは、初回ユーザイベント後に発火します。
+ *              遅延イベントは、ページ表示時にドキュメント先頭でない場合、発火します。
+ *              遅延イベントは、一度しか発火しません。
+ *              注意：初回ユーザイベントより後に発火します。初回ユーザイベントは、取り逃します。
+ *              注意：リスナー登録は、「DOMContentLoaded前」または「onLazy.js実行前」に実施する。
+ *              登録：window.addEventListener('lazy', func);
+ *              対応：IE9+（addEventListener, createEvent, initCustomEvent, pageYOffset）
  * @auther      toshi (https://github.com/k08045kk)
- * @license     MIT License
- * @see         https://github.com/k08045kk/onLazy.js/blob/master/LICENSE
+ * @license     MIT License | https://github.com/k08045kk/onLazy.js/blob/master/LICENSE
  * @version     3.6
- * @note        1.0 - 20190601 - 初版
- * @note        2.0 - 20200408 - v2.0
- * @note        2.1 - 20200408 - lazyイベントをDOMContentLoaded以降に発生するように仕様変更
- * @note        2.2 - 20200408 - スクロール不可時、lazyでlazyedイベントを合わせて実施する
- * @note        2.3 - 20200409 - 各種イベントを解除する
- * @note        2.4 - 20200409 - fix constが使用されている
- * @note        2.5 - 20200410 - fix lazyedが暴発することがある
- * @note        2.6 - 20200410 - リファクタリング
- * @note        2.7 - 20200719 - リファクタリング
- * @note        2.8 - 20201222 - リロード以外をハッシュで簡易判定する
- * @note        2.8 - 20201222 - window.onEventを廃止
- * @note        2.8 - 20201222 - unloadをpagehideに変更（Lighthouse指摘対応）
- * @note        2.9 - 20201228 - scrollリスナーを1個に統合
- * @note        3.0 - 20210108 - イベント発動をsetTimeoutで遅延する+他
- * @note        3.1 - 20210203 - requestAnimationFrameを導入
- * @note        3.2 - 20210208 - fix グローバル変数のチェック漏れ
- * @note        3.3 - 20210209 - requestAnimationFrameを導入2
- * @note        3.4 - 20210318 - requestAnimationFrameを導入3
- * @note        3.5 - 20210320 - fix Firefoxでユーザ操作なしでfocusを取得する
- * @note        3.6 - 20210320 - is変数を使用しない
+ * @since       1.0 - 20190601 - 初版
+ * @since       2.0 - 20200408 - v2
+ * @since       2.1 - 20200408 - lazyイベントをDOMContentLoaded以降に発生するように仕様変更
+ * @since       2.2 - 20200408 - スクロール不可時、lazyでlazyedイベントを合わせて実施する
+ * @since       2.3 - 20200409 - 各種イベントを解除する
+ * @since       2.4 - 20200409 - fix constが使用されている
+ * @since       2.5 - 20200410 - fix lazyedが暴発することがある
+ * @since       2.6 - 20200410 - リファクタリング
+ * @since       2.7 - 20200719 - リファクタリング
+ * @since       2.8 - 20201222 - リロード以外をハッシュで簡易判定する
+ * @since       2.8 - 20201222 - window.onEventを廃止
+ * @since       2.8 - 20201222 - unloadをpagehideに変更（Lighthouse指摘対応）
+ * @since       2.9 - 20201228 - scrollリスナーを1個に統合
+ * @since       3.0 - 20210108 - イベント発動をsetTimeoutで遅延する+他
+ * @since       3.1 - 20210203 - requestAnimationFrameを導入
+ * @since       3.2 - 20210208 - fix グローバル変数のチェック漏れ
+ * @since       3.3 - 20210209 - requestAnimationFrameを導入2
+ * @since       3.4 - 20210318 - requestAnimationFrameを導入3
+ * @since       3.5 - 20210320 - fix Firefoxでユーザ操作なしでfocusを取得する
+ * @since       3.6 - 20210320 - is変数を使用しない
  * @see         https://github.com/k08045kk/onLazy.js
  */
 (function(window, document) {
