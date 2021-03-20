@@ -1,4 +1,4 @@
-/*! onLazy.js v3.6 | MIT License | https://github.com/k08045kk/onLazy.js/blob/master/LICENSE */
+/*! onLazy.js v3.6 | MIT License | github.com/k08045kk/onLazy.js/blob/master/LICENSE */
 /**
  * onLazy.js
  * カスタムイベントとして遅延イベントを追加します。
@@ -40,7 +40,6 @@
  * @see         https://github.com/k08045kk/onLazy.js
  */
 (function(window, document) {
-  'use strict';
   
   // イベント種類
   // 想定初回イベント: despktop:mousedown/mousemove/scroll, mobile:touchstart/scroll
