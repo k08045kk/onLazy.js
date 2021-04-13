@@ -16,6 +16,9 @@ User event here means `click / mousedown / keydown / touchstart / mousemove / sc
 
 ## Usage
 ```js
+// First CPU idle event, or before the lazy event
+window.addEventListener('idle', func);
+
 // First user event
 window.addEventListener('lazy', func);
 
